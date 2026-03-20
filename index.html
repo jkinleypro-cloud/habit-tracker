@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<title>Habit Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  color: #f0f0f0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* === BACKGROUND === */
+.bg {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+  background: radial-gradient(circle at 50% 45%, #000000 0%, #0a0a0a 20%, #1a1a1a 40%, #2a2a2a 60%, #3a3a3a 80%, #4a4a4a 100%);
+}
+.bg::after {
+  content: '';
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%);
+  border-radius: 50%; pointer-events: none;
+}
+
+/* === GLASS === */
+.glass {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.glass::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 10%; right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  pointer-events: none;
+}
+.glass::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 40%);
+  pointer-events: none;
+  border-radius: 20px;
+}
+
+/* === SECTIONS === */
+section {
+  display: none;
+  padding: 60px 20px calc(20px + var(--safe-bottom));
+  min-height: 100dvh;
+  max-width: 420px;
+  margin: 0 auto;
+}
+section.active { display: flex; flex-direction: column; gap: 20px; }
+
+/* === DATE HEADER === */
+.date-header {
+  font-size: 12px;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 500;
+}
+
+/* === STAT CARDS === */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stat-card { padding: 20px 16px; text-align: center; }
+.stat-num { font-size: 36px; font-weight: 800; color: rgba(255,255,255,0.4); letter-spacing: -1px; }
+.stat-label { font-size: 9px; color: rgba(255,255,255,0.4); margin-top: 6px; text-transform: uppercase; letter-spacing: 2px; font-weight: 600; }
+
+/* === FLOW CARDS === */
+.flow-cards { display: flex; flex-direction: column; gap: 12px; }
+.flow-card {
+  padding: 18px 20px; display: flex; align-items: center; gap: 14px;
+  cursor: pointer; transition: all 0.2s ease;
+}
+.flow-card:hover { background: rgba(255, 255, 255, 0.09); }
+.flow-card:active { transform: scale(0.98); }
+
+.flow-icon {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.06); border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08); flex-shrink: 0;
+}
+
+.flow-info { flex: 1; min-width: 0; }
+.flow-title { font-size: 16px; font-weight: 600; color: rgba(255,255,255,0.9); letter-spacing: -0.2px; }
+.flow-desc { font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 2px; letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.flow-status {
+  font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 20px;
+  background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5);
+  border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; letter-spacing: 0.3px;
+}
+.flow-status.done { background: rgba(52,211,153,0.12); color: rgba(52,211,153,0.9); border-color: rgba(52,211,153,0.15); }
+
+/* === FLOW HEADER === */
+.flow-header {
+  display: flex; align-items: center; gap: 12px;
+}
+.back-btn {
+  background: none; border: none; color: rgba(255,255,255,0.5);
+  font-size: 20px; cursor: pointer; padding: 8px; margin: -8px;
+}
+.flow-step-title { font-size: 20px; font-weight: 700; flex: 1; color: rgba(255,255,255,0.9); letter-spacing: -0.3px; }
+.step-counter { font-size: 12px; color: rgba(255,255,255,0.25); font-weight: 500; }
+
+/* === PROGRESS BAR === */
+.progress-bar { height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-top: -8px; }
+.progress-fill { height: 100%; background: rgba(255,255,255,0.6); border-radius: 2px; transition: width 0.3s ease; }
+
+/* === STEP CONTENT === */
+.step-content { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+.step-prompt { font-size: 14px; color: rgba(255,255,255,0.35); line-height: 1.6; font-weight: 400; }
+
+/* === MIC BUTTON === */
+.mic-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 32px 0; }
+.mic-btn {
+  width: 80px; height: 80px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+}
+.mic-btn:hover { background: rgba(255,255,255,0.1); }
+.mic-btn:active { transform: scale(0.95); }
+.mic-btn .red-dot { width: 20px; height: 20px; border-radius: 50%; background: #f87171; box-shadow: 0 0 12px rgba(248,113,113,0.4); }
+.mic-btn.recording { border-color: rgba(248,113,113,0.4); animation: pulse 1.5s infinite; }
+.mic-btn.recording .red-dot { box-shadow: 0 0 20px rgba(248,113,113,0.6); }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,0.3); } 50% { box-shadow: 0 0 0 16px rgba(248,113,113,0); } }
+.mic-hint { font-size: 12px; color: rgba(255,255,255,0.25); font-weight: 500; letter-spacing: 0.3px; }
+
+/* === TRANSCRIPT BOX === */
+.transcript-box {
+  padding: 16px; min-height: 70px; font-size: 13px;
+  color: rgba(255,255,255,0.7); line-height: 1.5; white-space: pre-wrap;
+}
+.transcript-box.empty { color: rgba(255,255,255,0.25); font-style: italic; }
+
+/* === SLIDER === */
+.slider-group { display: flex; flex-direction: column; gap: 12px; }
+.slider-row { padding: 18px; }
+.slider-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
+.slider-name { font-size: 14px; color: rgba(255,255,255,0.6); font-weight: 500; }
+.slider-val { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.9); }
+input[type=range] {
+  -webkit-appearance: none; width: 100%; height: 4px; border-radius: 2px;
+  background: rgba(255,255,255,0.12); outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(255,255,255,0.95); box-shadow: 0 2px 8px rgba(0,0,0,0.3); cursor: pointer;
+}
+
+/* === NUMBER INPUT (drinks) === */
+.number-input { display: flex; align-items: center; justify-content: center; gap: 24px; padding: 20px 0; }
+.num-btn {
+  width: 52px; height: 52px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  color: rgba(255,255,255,0.7); font-size: 22px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.num-btn:hover { background: rgba(255,255,255,0.1); }
+.num-btn:active { transform: scale(0.95); }
+.num-display { font-size: 48px; font-weight: 800; min-width: 80px; text-align: center; color: rgba(255,255,255,0.9); }
+
+/* === MOOD GRID === */
+.mood-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.mood-btn {
+  padding: 28px; text-align: center; font-size: 40px;
+  cursor: pointer; transition: all 0.15s; border-radius: 20px; border: none;
+  background: transparent; position: relative; overflow: hidden;
+}
+.mood-btn:hover { background: rgba(255,255,255,0.09); }
+.mood-btn:active { transform: scale(0.95); }
+.mood-btn.selected { border-color: rgba(52,211,153,0.4); background: rgba(52,211,153,0.08); }
+
+/* === REVIEW ROW (exercise) === */
+.review-list { display: flex; flex-direction: column; gap: 10px; }
+.review-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px;
+}
+.review-label { font-size: 13px; color: rgba(255,255,255,0.4); }
+.review-edit {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px; color: rgba(255,255,255,0.9); padding: 8px 12px;
+  font-size: 14px; font-family: 'Inter', sans-serif; width: 80px; text-align: center;
+}
+select.review-edit { width: 120px; }
+
+/* === BUTTONS === */
+.btn-row { display: flex; gap: 12px; margin-top: auto; padding-top: 20px; }
+.btn {
+  flex: 1; padding: 16px; border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  color: rgba(255,255,255,0.9); font-family: 'Inter', sans-serif;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; position: relative; overflow: hidden; letter-spacing: 0.3px;
+}
+.btn::before {
+  content: '';
+  position: absolute; top: 0; left: 15%; right: 15%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+}
+.btn:hover { background: rgba(255,255,255,0.18); }
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn-skip {
+  background: transparent; border-color: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.4);
+}
+.btn-skip::before { display: none; }
+
+/* === QUICK LOG TYPE SELECTOR === */
+.type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.type-btn {
+  padding: 24px 12px; border-radius: 20px;
+  cursor: pointer; text-align: center; transition: all 0.15s;
+  font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.6);
+  font-family: 'Inter', sans-serif; border: none; background: transparent;
+}
+.type-btn .type-icon { font-size: 28px; margin-bottom: 8px; display: block; }
+.type-btn.selected { background: rgba(255,255,255,0.08); }
+.type-btn:active { transform: scale(0.97); }
+
+/* === CONFIRM === */
+.confirm-card { padding: 32px; text-align: center; }
+.confirm-icon { font-size: 48px; margin-bottom: 12px; }
+.confirm-msg { font-size: 14px; color: rgba(255,255,255,0.4); }
+
+/* === TOAST === */
+.toast {
+  position: fixed; bottom: calc(20px + var(--safe-bottom)); left: 50%; transform: translateX(-50%);
+  background: rgba(52,211,153,0.9); color: #000; padding: 12px 24px; border-radius: 30px;
+  font-size: 14px; font-weight: 600; opacity: 0; transition: opacity 0.3s;
+  z-index: 100; pointer-events: none; backdrop-filter: blur(10px);
+  font-family: 'Inter', sans-serif;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+
+<!-- HOME SCREEN -->
+<section id="home" class="active">
+  <div class="date-header" id="dateDisplay"></div>
+
+  <div class="stats-grid">
+    <div class="glass stat-card"><div class="stat-num" id="drinks7d">-</div><div class="stat-label">Drinks (7d)</div></div>
+    <div class="glass stat-card"><div class="stat-num" id="smokeFree">-</div><div class="stat-label">Smoke-Free</div></div>
+  </div>
+
+  <div class="flow-cards">
+    <div class="glass flow-card" onclick="startFlow('morning')">
+      <div class="flow-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </div>
+      <div class="flow-info">
+        <div class="flow-title">Morning</div>
+        <div class="flow-desc">Sleep + intention + gratitude</div>
+      </div>
+      <div class="flow-status" id="morningStatus">Start</div>
+    </div>
+    <div class="glass flow-card" onclick="startFlow('quicklog')">
+      <div class="flow-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </div>
+      <div class="flow-info">
+        <div class="flow-title">Quick Log</div>
+        <div class="flow-desc">Meals + symptoms + notes</div>
+      </div>
+      <div class="flow-status">Log</div>
+    </div>
+    <div class="glass flow-card" onclick="startFlow('evening')">
+      <div class="flow-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </div>
+      <div class="flow-info">
+        <div class="flow-title">Evening</div>
+        <div class="flow-desc">Exercise + mood + energy + highlights</div>
+      </div>
+      <div class="flow-status" id="eveningStatus">Start</div>
+    </div>
+  </div>
+</section>
+
+<!-- MORNING FLOW -->
+<section id="morning-1">
+  <div class="flow-header">
+    <button class="back-btn" onclick="goHome()">&larr;</button>
+    <div class="flow-step-title">Sleep</div>
+    <div class="step-counter">1/3</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" style="width:33%"></div></div>
+  <div class="step-content">
+    <div class="step-prompt">How many hours did you sleep last night?</div>
+    <div class="slider-group">
+      <div class="glass slider-row">
+        <div class="slider-header"><span class="slider-name">Hours</span><span class="slider-val" id="sleepVal">7</span></div>
+        <input type="range" min="0" max="13" step="0.5" value="7" oninput="state.morning.sleep=+this.value;document.getElementById('sleepVal').textContent=this.value">
+      </div>
+    </div>
+  </div>
+  <div class="btn-row"><button class="btn" onclick="showSection('morning-2')">Next</button></div>
+</section>
+
+<section id="morning-2">
+  <div class="flow-header">
+    <button class="back-btn" onclick="showSection('morning-1')">&larr;</button>
+    <div class="flow-step-title">Morning Intention</div>
+    <div class="step-counter">2/3</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" style="width:66%"></div></div>
+  <div class="step-content">
+    <div class="step-prompt">What's your intention for today? What do you want to focus on?</div>
+    <div class="mic-wrap">
+      <button class="mic-btn" onclick="toggleRecording('morning','intention')"><div class="red-dot"></div></button>
+      <div class="mic-hint">Tap to record</div>
+    </div>
+    <div class="glass transcript-box empty" id="transcript-intention">Tap the mic to record your intention...</div>
+  </div>
+  <div class="btn-row"><button class="btn" onclick="showSection('morning-3')">Next</button></div>
+</section>
+
+<section id="morning-3">
+  <div class="flow-header">
+    <button class="back-btn" onclick="showSection('morning-2')">&larr;</button>
+    <div class="flow-step-title">Gratitude</div>
+    <div class="step-counter">3/3</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+  <div class="step-content">
+    <div class="step-prompt">What are you grateful for today?</div>
+    <div class="mic-wrap">
+      <button class="mic-btn" onclick="toggleRecording('morning','gratitude')"><div class="red-dot"></div></button>
+      <div class="mic-hint">Tap to record</div>
+    </div>
+    <div class="glass transcript-box empty" id="transcript-gratitude">Tap the mic to record your gratitude...</div>
+  </div>
+  <div class="btn-row"><button class="btn" onclick="submitMorning()" id="morningSubmitBtn">Save</button></div>
+</section>
+
+<!-- QUICK LOG FLOW -->
+<section id="quicklog-1">
+  <div class="flow-header">
+    <button class="back-btn" onclick="goHome()">&larr;</button>
+    <div class="flow-step-title">Quick Log</div>
+    <div class="step-counter">1/3</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" style="width:33%"></div></div>
+  <div class="step-content">
+    <div class="step-prompt">What are you logging?</div>
+    <div class="type-grid">
+      <div class="glass type-btn selected" onclick="selectLogType('meal',this)">
+        <span class="type-icon">&#127869;</span>Meal
+      </div>
+      <div class="glass type-btn" onclick="selectLogType('symptom',this)">
+        <span class="type-icon">&#129657;</span>Symptom
+      </div>
+      <div class="glass type-btn" onclick="selectLogType('note',this)">
+        <span class="type-icon">&#128221;</span>Note
+      </div>
+    </div>
+  </div>
+  <div class="btn-row"><button class="btn" onclick="showSection('quicklog-2')">Next</button></div>
+</section>
+
+<section id="quicklog-2">
+  <div class="flow-header">
+    <button class="back-btn" onclick="showSection('quicklog-1')">&larr;</button>
+    <div class="flow-step-title" id="quicklogRecordTitle">Record Meal</div>
+    <div class="step-counter">2/3</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" style="width:66%"></div></div>
+  <div class="step-content">
+    <div class="step-prompt" id="quicklogRecordPrompt">Describe what you ate and drank.</div>
+    <div class="mic-wrap">
+      <button class="mic-btn" onclick="toggleRecording('quicklog','content')"><div class="red-dot"></div></button>
+      <div class="mic-hint">Tap to record</div>
+    </div>
+    <div class="glass transcript-box empty" id="transcript-content">Tap the mic to record...</div>
+  </div>
+  <div class="btn-row"><button class="btn" onclick="submitQuickLog()" id="quicklogSubmitBtn">Save</button></div>
+</section>
+
+<section id="quicklog-3">
+  <div class="flow-header">
+    <button class="back-btn" onclick="goHome()">&larr;</button>
+    <div class="flow-step-title">Saved</div>
+    <div class="step-counter">3/3</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+  <div class="step-content" style="justify-content:center;align-items:center;">
+    <div class="glass confirm-card">
+      <div class="confirm-icon">&#10003;</div>
+      <div class="confirm-msg">Entry logged successfully.</div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-skip" onclick="startFlow('quicklog')">Log Another</button>
+    <button class="btn" onclick="goHome()">Done</button>
+  </div>
+</section>
+
+<!-- EVENING FLOW -->
+<section id="evening-1">
+  <div class="flow-header">
+    <button class="back-btn" onclick="goHome()">&larr;</button>
+    <div class="flow-step-title">Exercise</div>
+    <div class="step-counter">1/6</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" style="width:16.6%"></div></div>
+  <div class="step-content">
+    <div class="step-prompt">What exercise did you do today?</div>
+    <div class="review-list">
+      <div class="glass review-row">
+        <div class="review-label">Exercise Type</div>
+        <select class="review-edit" id="evExType">
+          <option>Run</option><option>Walk</option><option>Gym</option><option>Bike</option><option>Swim</option><option>Rest</option><option>Other</option>
+        </select>
+      </div>
+      <div class="glass review-row">
+        <div class="review-label">Duration</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="number" class="review-edit" id="evExDur" value="0" min="0" max="300">
+          <span style="color:rgba(255,255,255,0.3)">min</span>
+        </div>
+      </div>
+      <div class="glass review-row">
+        <div class="review-label">Distance</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="number" class="review-edit" id="evExDist" value="0" step="0.1" min="0" max="50">
+          <span style="color:rgba(255,255,255,0.3)">mi</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="btn-row"><button class="btn" onclick="showSection('evening-2')">Next</button></div>
+</section>
+
+<section id="evening-2">
+  <div class="flow-header">
+    <button class="back-btn" onclick="showSection('evening-1')">&larr;</button>
+    <div class="flow-step-title">Work & Drinks</div>
+    <div class="step-counter">2/6</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" style="width:33%"></div></div>
+  <div class="step-content">
+    <div class="slider-group">
+      <div class="glass slider-row">
+        <div class="slider-header"><span class="slider-name">Work Hours</span><span class="slider-val" id="workVal">4</span></div>
+        <input type="range" min="0" max="13" step="0.5" value="4" oninput="state.evening.workHours=+this.value;document.getElementById('workVal').textContent=this.value">
+      </div>
+    </div>
+    <div style="margin-top:4px">
+      <div class="step-prompt">How many drinks today?</div>
+      <div class="number-input">
+        <button class="num-btn" onclick="adjustNum('drinks',-1)">&minus;</button>
+        <div class="num-display" id="drinksDisplay">0</div>
+        <button class="num-btn" onclick="adjustNum('drinks',1)">+</button>
+      </div>
+    </div>
+  </div>
+  <div class="btn-row"><button class="btn" onclick="showSection('evening-3')">Next</button></div>
+</section>
+
+<section id="evening-3">
+  <div class="flow-header">
+    <button class="back-btn" onclick="showSection('evening-2')">&larr;</button>
+    <div class="flow-step-title">Mood</div>
+    <div class="step-counter">3/6</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" style="width:50%"></div></div>
+  <div class="step-content">
+    <div class="step-prompt">How was your overall mood today?</div>
+    <div class="mood-grid">
+      <button class="glass mood-btn" onclick="selectMood('Great',this)">&#128513;</button>
+      <button class="glass mood-btn" onclick="selectMood('Good',this)">&#128578;</button>
+      <button class="glass mood-btn" onclick="selectMood('Meh',this)">&#128528;</button>
+      <button class="glass mood-btn" onclick="selectMood('Bad',this)">&#128542;</button>
+    </div>
+    <div style="text-align:center;color:rgba(255,255,255,0.25);font-size:12px;margin-top:8px">Tap to select and continue</div>
+  </div>
+</section>
+
+<section id="evening-4">
+  <div class="flow-header">
+    <button class="back-btn" onclick="showSection('evening-3')">&larr;</button>
+    <div class="flow-step-title">Energy / Stress / Focus</div>
+    <div class="step-counter">4/6</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" style="width:66%"></div></div>
+  <div class="step-content">
+    <div class="slider-group">
+      <div class="glass slider-row">
+        <div class="slider-header"><span class="slider-name">Energy</span><span class="slider-val" id="energyVal">3</span></div>
+        <input type="range" min="1" max="5" value="3" oninput="state.evening.energy=+this.value;document.getElementById('energyVal').textContent=this.value">
+      </div>
+      <div class="glass slider-row">
+        <div class="slider-header"><span class="slider-name">Stress</span><span class="slider-val" id="stressVal">3</span></div>
+        <input type="range" min="1" max="5" value="3" oninput="state.evening.stress=+this.value;document.getElementById('stressVal').textContent=this.value">
+      </div>
+      <div class="glass slider-row">
+        <div class="slider-header"><span class="slider-name">Focus</span><span class="slider-val" id="focusVal">3</span></div>
+        <input type="range" min="1" max="5" value="3" oninput="state.evening.focus=+this.value;document.getElementById('focusVal').textContent=this.value">
+      </div>
+    </div>
+  </div>
+  <div class="btn-row"><button class="btn" onclick="showSection('evening-5')">Next</button></div>
+</section>
+
+<section id="evening-5">
+  <div class="flow-header">
+    <button class="back-btn" onclick="showSection('evening-4')">&larr;</button>
+    <div class="flow-step-title">Physical Symptoms</div>
+    <div class="step-counter">5/6</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" style="width:83%"></div></div>
+  <div class="step-content">
+    <div class="step-prompt">Any physical symptoms today? Headache, soreness, stomach issues, etc.</div>
+    <div class="mic-wrap">
+      <button class="mic-btn" onclick="toggleRecording('evening','symptoms')"><div class="red-dot"></div></button>
+      <div class="mic-hint">Tap to record</div>
+    </div>
+    <div class="glass transcript-box empty" id="transcript-symptoms">Tap the mic to record, or skip...</div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-skip" onclick="state.evening.symptoms='';showSection('evening-6')">Skip</button>
+    <button class="btn" onclick="showSection('evening-6')">Next</button>
+  </div>
+</section>
+
+<section id="evening-6">
+  <div class="flow-header">
+    <button class="back-btn" onclick="showSection('evening-5')">&larr;</button>
+    <div class="flow-step-title">Daily Highlights</div>
+    <div class="step-counter">6/6</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+  <div class="step-content">
+    <div class="step-prompt">What happened today worth remembering?</div>
+    <div class="mic-wrap">
+      <button class="mic-btn" onclick="toggleRecording('evening','highlights')"><div class="red-dot"></div></button>
+      <div class="mic-hint">Tap to record</div>
+    </div>
+    <div class="glass transcript-box empty" id="transcript-highlights">Tap the mic to record your highlights...</div>
+  </div>
+  <div class="btn-row"><button class="btn" onclick="submitEvening()" id="eveningSubmitBtn">Submit</button></div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== CONFIGURATION =====
+const API_URL = 'https://script.google.com/macros/s/AKfycbx8qswg6H85Y2hk49ns5i8M9eF26rqqDo-c8X_p_F9xiHCWMa7t4DAFKypXN5kPEdEg/exec';
+
+// ===== STATE =====
+const state = {
+  date: new Date().toISOString().split('T')[0],
+  morning: { sleep: 7, intention: '', gratitude: '' },
+  quicklog: { logType: 'meal', content: '' },
+  evening: {
+    exerciseType: 'Run', exerciseDuration: 0, exerciseDistance: 0,
+    workHours: 4, drinks: 0, mood: '', energy: 3, stress: 3, focus: 3,
+    symptoms: '', highlights: ''
+  },
+  recording: { active: false, field: null, flow: null, recognition: null, recorder: null, chunks: [] }
+};
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+  const d = new Date();
+  document.getElementById('dateDisplay').textContent = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  const params = new URLSearchParams(window.location.search);
+  const flow = params.get('flow');
+  const type = params.get('type');
+  if (flow === 'morning') startFlow('morning');
+  else if (flow === 'quicklog') { if (type) state.quicklog.logType = type; startFlow('quicklog'); }
+  else if (flow === 'evening') startFlow('evening');
+
+  fetchStatus();
+});
+
+// ===== NAVIGATION =====
+function showSection(id) {
+  document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function goHome() {
+  stopRecording();
+  showSection('home');
+}
+
+function startFlow(flow) {
+  if (flow === 'morning') {
+    state.morning = { sleep: 7, intention: '', gratitude: '' };
+    document.getElementById('sleepVal').textContent = '7';
+    document.querySelector('#morning-1 input[type=range]').value = 7;
+    clearTranscript('intention');
+    clearTranscript('gratitude');
+    showSection('morning-1');
+  } else if (flow === 'quicklog') {
+    state.quicklog.content = '';
+    clearTranscript('content');
+    updateQuickLogLabels();
+    showSection('quicklog-1');
+  } else if (flow === 'evening') {
+    resetEveningState();
+    showSection('evening-1');
+  }
+}
+
+function resetEveningState() {
+  state.evening = {
+    exerciseType: 'Run', exerciseDuration: 0, exerciseDistance: 0,
+    workHours: 4, drinks: 0, mood: '', energy: 3, stress: 3, focus: 3,
+    symptoms: '', highlights: ''
+  };
+  document.getElementById('evExType').value = 'Run';
+  document.getElementById('evExDur').value = '0';
+  document.getElementById('evExDist').value = '0';
+  document.getElementById('workVal').textContent = '4';
+  document.querySelector('#evening-2 input[type=range]').value = 4;
+  document.getElementById('drinksDisplay').textContent = '0';
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+  ['energyVal','stressVal','focusVal'].forEach(id => document.getElementById(id).textContent = '3');
+  document.querySelectorAll('#evening-4 input[type=range]').forEach(r => r.value = 3);
+  ['symptoms','highlights'].forEach(f => clearTranscript(f));
+}
+
+// ===== HOME SCREEN DATA =====
+async function fetchStatus() {
+  if (API_URL.includes('PASTE_YOUR')) return;
+  try {
+    const res = await fetch(API_URL + '?action=status&date=' + state.date);
+    const data = await res.json();
+    if (data.drinks7d !== undefined) {
+      document.getElementById('drinks7d').textContent = data.drinks7d;
+    }
+    if (data.smokeFree !== undefined) {
+      document.getElementById('smokeFree').textContent = data.smokeFree;
+    }
+    if (data.morningDone) {
+      const ms = document.getElementById('morningStatus');
+      ms.textContent = 'Done'; ms.className = 'flow-status done';
+    }
+    if (data.eveningDone) {
+      const es = document.getElementById('eveningStatus');
+      es.textContent = 'Done'; es.className = 'flow-status done';
+    }
+  } catch (e) { console.log('Status fetch failed:', e); }
+}
+
+// ===== MORNING FLOW =====
+async function submitMorning() {
+  const btn = document.getElementById('morningSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    await postData({
+      type: 'morning', date: state.date,
+      sleep: state.morning.sleep,
+      intention: state.morning.intention,
+      gratitude: state.morning.gratitude
+    });
+    toast('Morning log saved!');
+    const ms = document.getElementById('morningStatus');
+    ms.textContent = 'Done'; ms.className = 'flow-status done';
+    goHome();
+  } catch (e) { toast('Failed to save. Try again.'); }
+  btn.disabled = false; btn.textContent = 'Save';
+}
+
+// ===== QUICK LOG =====
+function selectLogType(type, el) {
+  state.quicklog.logType = type;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function updateQuickLogLabels() {
+  const titles = { meal: 'Record Meal', symptom: 'Record Symptom', note: 'Record Note' };
+  const prompts = { meal: 'Describe what you ate and drank.', symptom: 'Describe your symptoms.', note: 'What would you like to note?' };
+  document.getElementById('quicklogRecordTitle').textContent = titles[state.quicklog.logType] || 'Record';
+  document.getElementById('quicklogRecordPrompt').textContent = prompts[state.quicklog.logType] || '';
+}
+async function submitQuickLog() {
+  const btn = document.getElementById('quicklogSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    await postData({ type: 'quicklog', date: state.date, logType: state.quicklog.logType, content: state.quicklog.content });
+    showSection('quicklog-3');
+  } catch (e) { toast('Failed to save. Try again.'); }
+  btn.disabled = false; btn.textContent = 'Save';
+}
+
+// ===== EVENING FLOW =====
+function adjustNum(field, delta) {
+  if (field === 'drinks') {
+    state.evening.drinks = Math.max(0, state.evening.drinks + delta);
+    document.getElementById('drinksDisplay').textContent = state.evening.drinks;
+  }
+}
+
+function selectMood(mood, el) {
+  state.evening.mood = mood;
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  setTimeout(() => showSection('evening-4'), 250);
+}
+
+async function submitEvening() {
+  state.evening.exerciseType = document.getElementById('evExType').value;
+  state.evening.exerciseDuration = parseInt(document.getElementById('evExDur').value) || 0;
+  state.evening.exerciseDistance = parseFloat(document.getElementById('evExDist').value) || 0;
+
+  const btn = document.getElementById('eveningSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  try {
+    const drank = state.evening.drinks > 0;
+    await postData({
+      type: 'evening', date: state.date,
+      exerciseType: state.evening.exerciseType,
+      exerciseDuration: state.evening.exerciseDuration,
+      exerciseDistance: state.evening.exerciseDistance,
+      workHours: state.evening.workHours, mood: state.evening.mood,
+      energy: state.evening.energy, stress: state.evening.stress, focus: state.evening.focus,
+      smoked: false, drank: drank,
+      alcoholUnits: state.evening.drinks, foodSlip: false,
+      behavioralSlip: false, symptoms: state.evening.symptoms,
+      highlights: state.evening.highlights, emotionalCheckin: ''
+    });
+    toast('Evening log submitted!');
+    const es = document.getElementById('eveningStatus');
+    es.textContent = 'Done'; es.className = 'flow-status done';
+    goHome();
+    fetchStatus();
+  } catch (e) { toast('Failed to submit. Try again.'); }
+  btn.disabled = false; btn.textContent = 'Submit';
+}
+
+// ===== VOICE RECORDING =====
+function toggleRecording(flow, field) {
+  if (state.recording.active && state.recording.field === field) {
+    stopRecording();
+  } else {
+    stopRecording();
+    startRecording(flow, field);
+  }
+}
+
+function startRecording(flow, field) {
+  state.recording = { active: true, field: field, flow: flow, recognition: null, recorder: null, chunks: [] };
+  const micBtn = getMicBtn(field);
+  if (micBtn) micBtn.classList.add('recording');
+  updateMicHint(field, 'Recording... tap to stop');
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) {
+    const recognition = new SR();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    state.recording.recognition = recognition;
+
+    let finalTranscript = '';
+
+    recognition.onresult = (e) => {
+      let interim = '';
+      for (let i = 0; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          finalTranscript += e.results[i][0].transcript + ' ';
+        } else {
+          interim += e.results[i][0].transcript;
+        }
+      }
+      setTranscript(field, (finalTranscript + interim).trim(), flow);
+    };
+
+    recognition.onerror = (e) => {
+      console.log('SpeechRecognition error:', e.error);
+      if (e.error === 'not-allowed' || e.error === 'service-not-available') {
+        startMediaRecorder(flow, field);
+      }
+    };
+
+    recognition.onend = () => {
+      if (state.recording.active && state.recording.field === field) {
+        if (micBtn) micBtn.classList.remove('recording');
+        state.recording.active = false;
+        updateMicHint(field, 'Tap to re-record');
+      }
+    };
+
+    try { recognition.start(); } catch (e) { startMediaRecorder(flow, field); }
+  } else {
+    startMediaRecorder(flow, field);
+  }
+
+  state.recording.timeout = setTimeout(() => stopRecording(), 60000);
+}
+
+async function startMediaRecorder(flow, field) {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recorder = new MediaRecorder(stream);
+    state.recording.recorder = recorder;
+    state.recording.chunks = [];
+
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) state.recording.chunks.push(e.data); };
+    recorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      if (state.recording.chunks.length === 0) return;
+      const blob = new Blob(state.recording.chunks, { type: recorder.mimeType || 'audio/webm' });
+      updateMicHint(field, 'Transcribing...');
+      try {
+        const transcript = await transcribeViaAppsScript(blob);
+        setTranscript(field, transcript, flow);
+        updateMicHint(field, 'Tap to re-record');
+      } catch (e) {
+        setTranscript(field, '[Transcription failed — try again]', flow);
+        updateMicHint(field, 'Tap to re-record');
+      }
+    };
+
+    recorder.start();
+  } catch (e) {
+    console.error('MediaRecorder failed:', e);
+    updateMicHint(field, 'Mic not available');
+    const micBtn = getMicBtn(field);
+    if (micBtn) micBtn.classList.remove('recording');
+    state.recording.active = false;
+  }
+}
+
+function stopRecording() {
+  if (state.recording.timeout) clearTimeout(state.recording.timeout);
+  if (state.recording.recognition) {
+    try { state.recording.recognition.stop(); } catch (e) {}
+  }
+  if (state.recording.recorder && state.recording.recorder.state === 'recording') {
+    state.recording.recorder.stop();
+  }
+  if (state.recording.field) {
+    const micBtn = getMicBtn(state.recording.field);
+    if (micBtn) micBtn.classList.remove('recording');
+  }
+  state.recording.active = false;
+}
+
+async function transcribeViaAppsScript(blob) {
+  const base64 = await blobToBase64(blob);
+  const res = await postData({ action: 'transcribe', audio: base64, mimeType: blob.type });
+  return res.transcript;
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+    reader.readAsDataURL(blob);
+  });
+}
+
+// ===== TRANSCRIPT HELPERS =====
+function setTranscript(field, text, flow) {
+  const el = document.getElementById('transcript-' + field);
+  if (el) {
+    el.textContent = text || '';
+    el.classList.toggle('empty', !text);
+  }
+  if (flow === 'morning') state.morning[field] = text;
+  else if (flow === 'quicklog') state.quicklog[field] = text;
+  else if (flow === 'evening') state.evening[field] = text;
+}
+
+function clearTranscript(field) {
+  const el = document.getElementById('transcript-' + field);
+  if (el) {
+    el.textContent = 'Tap the mic to record...';
+    el.classList.add('empty');
+  }
+}
+
+function getMicBtn(field) {
+  const el = document.getElementById('transcript-' + field);
+  if (el) {
+    const section = el.closest('section');
+    if (section) return section.querySelector('.mic-btn');
+  }
+  return null;
+}
+
+function updateMicHint(field, text) {
+  const el = document.getElementById('transcript-' + field);
+  if (el) {
+    const section = el.closest('section');
+    if (section) {
+      const hint = section.querySelector('.mic-hint');
+      if (hint) hint.textContent = text;
+    }
+  }
+}
+
+// ===== API =====
+async function postData(payload) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload),
+    redirect: 'follow'
+  });
+  return res.json();
+}
+
+// ===== TOAST =====
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
