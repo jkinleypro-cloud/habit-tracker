@@ -235,7 +235,17 @@ select.review-edit { width: 120px; }
 }
 .btn-skip::before { display: none; }
 
-/* === QUICK LOG TYPE SELECTOR === */
+/* === NUMBER FIELD (exercise) === */
+input[type=number] {
+  -webkit-appearance: none; -moz-appearance: textfield;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px; color: rgba(255,255,255,0.9); padding: 10px 12px;
+  font-size: 16px; font-family: 'Inter', sans-serif; text-align: center;
+}
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* === TYPE SELECTOR === */
 .type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .type-btn {
   padding: 24px 12px; border-radius: 20px;
@@ -287,16 +297,6 @@ select.review-edit { width: 120px; }
       </div>
       <div class="flow-status" id="morningStatus">Start</div>
     </div>
-    <div class="glass flow-card" onclick="startFlow('quicklog')">
-      <div class="flow-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      </div>
-      <div class="flow-info">
-        <div class="flow-title">Quick Log</div>
-        <div class="flow-desc">Meals + symptoms + notes</div>
-      </div>
-      <div class="flow-status">Log</div>
-    </div>
     <div class="glass flow-card" onclick="startFlow('evening')">
       <div class="flow-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -325,6 +325,14 @@ select.review-edit { width: 120px; }
         <div class="slider-header"><span class="slider-name">Hours</span><span class="slider-val" id="sleepVal">7</span></div>
         <input type="range" min="0" max="13" step="0.5" value="7" oninput="state.morning.sleep=+this.value;document.getElementById('sleepVal').textContent=this.value">
       </div>
+    </div>
+    <div class="step-prompt" style="margin-top:8px">How was your sleep quality?</div>
+    <div class="type-grid" style="grid-template-columns:repeat(5,1fr);max-width:320px;margin:0 auto;" id="sleepQualGrid">
+      <div class="glass type-btn" onclick="selectSleepQuality(1,this)">1</div>
+      <div class="glass type-btn" onclick="selectSleepQuality(2,this)">2</div>
+      <div class="glass type-btn selected" onclick="selectSleepQuality(3,this)">3</div>
+      <div class="glass type-btn" onclick="selectSleepQuality(4,this)">4</div>
+      <div class="glass type-btn" onclick="selectSleepQuality(5,this)">5</div>
     </div>
   </div>
   <div class="btn-row"><button class="btn" onclick="showSection('morning-2')">Next</button></div>
@@ -366,68 +374,6 @@ select.review-edit { width: 120px; }
   <div class="btn-row"><button class="btn" onclick="submitMorning()" id="morningSubmitBtn">Save</button></div>
 </section>
 
-<!-- QUICK LOG FLOW -->
-<section id="quicklog-1">
-  <div class="flow-header">
-    <button class="back-btn" onclick="goHome()">&larr;</button>
-    <div class="flow-step-title">Quick Log</div>
-    <div class="step-counter">1/3</div>
-  </div>
-  <div class="progress-bar"><div class="progress-fill" style="width:33%"></div></div>
-  <div class="step-content">
-    <div class="step-prompt">What are you logging?</div>
-    <div class="type-grid">
-      <div class="glass type-btn selected" onclick="selectLogType('meal',this)">
-        <span class="type-icon">&#127869;</span>Meal
-      </div>
-      <div class="glass type-btn" onclick="selectLogType('symptom',this)">
-        <span class="type-icon">&#129657;</span>Symptom
-      </div>
-      <div class="glass type-btn" onclick="selectLogType('note',this)">
-        <span class="type-icon">&#128221;</span>Note
-      </div>
-    </div>
-  </div>
-  <div class="btn-row"><button class="btn" onclick="showSection('quicklog-2')">Next</button></div>
-</section>
-
-<section id="quicklog-2">
-  <div class="flow-header">
-    <button class="back-btn" onclick="showSection('quicklog-1')">&larr;</button>
-    <div class="flow-step-title" id="quicklogRecordTitle">Record Meal</div>
-    <div class="step-counter">2/3</div>
-  </div>
-  <div class="progress-bar"><div class="progress-fill" style="width:66%"></div></div>
-  <div class="step-content">
-    <div class="step-prompt" id="quicklogRecordPrompt">Describe what you ate and drank.</div>
-    <div class="mic-wrap">
-      <button class="mic-btn" onclick="toggleRecording('quicklog','content')"><div class="red-dot"></div></button>
-      <div class="mic-hint">Tap to record</div>
-    </div>
-    <div class="glass transcript-box empty" id="transcript-content">Tap the mic to record...</div>
-  </div>
-  <div class="btn-row"><button class="btn" onclick="submitQuickLog()" id="quicklogSubmitBtn">Save</button></div>
-</section>
-
-<section id="quicklog-3">
-  <div class="flow-header">
-    <button class="back-btn" onclick="goHome()">&larr;</button>
-    <div class="flow-step-title">Saved</div>
-    <div class="step-counter">3/3</div>
-  </div>
-  <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
-  <div class="step-content" style="justify-content:center;align-items:center;">
-    <div class="glass confirm-card">
-      <div class="confirm-icon">&#10003;</div>
-      <div class="confirm-msg">Entry logged successfully.</div>
-    </div>
-  </div>
-  <div class="btn-row">
-    <button class="btn btn-skip" onclick="startFlow('quicklog')">Log Another</button>
-    <button class="btn" onclick="goHome()">Done</button>
-  </div>
-</section>
-
 <!-- EVENING FLOW -->
 <section id="evening-1">
   <div class="flow-header">
@@ -437,47 +383,105 @@ select.review-edit { width: 120px; }
   </div>
   <div class="progress-bar"><div class="progress-fill" style="width:16.6%"></div></div>
   <div class="step-content">
-    <div class="step-prompt">What exercise did you do today?</div>
-    <div class="slider-group">
+    <div class="step-prompt">What type of exercise?</div>
+    <div class="type-grid" id="exerciseTypeGrid">
+      <div class="glass type-btn selected" onclick="selectExerciseType('Run',this)">
+        <span class="type-icon">&#127939;</span>Run
+      </div>
+      <div class="glass type-btn" onclick="selectExerciseType('Walk',this)">
+        <span class="type-icon">&#128694;</span>Walk
+      </div>
+      <div class="glass type-btn" onclick="selectExerciseType('Swim',this)">
+        <span class="type-icon">&#127946;</span>Swim
+      </div>
+      <div class="glass type-btn" onclick="selectExerciseType('Bike',this)">
+        <span class="type-icon">&#128692;</span>Bike
+      </div>
+      <div class="glass type-btn" onclick="selectExerciseType('Calisthenics',this)">
+        <span class="type-icon">&#128170;</span>Calisthenics
+      </div>
+      <div class="glass type-btn" onclick="selectExerciseType('Rest',this)">
+        <span class="type-icon">&#128564;</span>Rest
+      </div>
+    </div>
+
+    <!-- Cardio inputs (Run, Walk, Swim, Bike) -->
+    <div id="cardioInputs" class="slider-group" style="margin-top:16px">
       <div class="glass slider-row">
-        <div class="slider-header"><span class="slider-name">Type</span><span class="slider-val" id="evExTypeLabel">Run</span></div>
-        <select class="review-edit" id="evExType" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:rgba(255,255,255,0.9);padding:10px 12px;font-size:14px;font-family:'Inter',sans-serif;" onchange="document.getElementById('evExTypeLabel').textContent=this.value">
-          <option>Run</option><option>Walk</option><option>Gym</option><option>Bike</option><option>Swim</option><option>Rest</option><option>Other</option>
-        </select>
+        <div class="slider-header"><span class="slider-name">Duration</span></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" min="0" max="23" value="0" id="exDurHH" class="review-edit" style="width:60px" placeholder="HH" oninput="updateDuration()">
+          <span style="color:rgba(255,255,255,0.4);font-weight:600">:</span>
+          <input type="number" min="0" max="59" value="30" id="exDurMM" class="review-edit" style="width:60px" placeholder="MM" oninput="updateDuration()">
+          <span style="color:rgba(255,255,255,0.3);font-size:12px;margin-left:4px">h:m</span>
+        </div>
       </div>
       <div class="glass slider-row">
-        <div class="slider-header"><span class="slider-name">Duration</span><span class="slider-val" id="evExDurVal">30 min</span></div>
-        <input type="range" min="0" max="90" step="10" value="30" id="evExDur" oninput="state.evening.exerciseDuration=+this.value;document.getElementById('evExDurVal').textContent=this.value+' min'">
+        <div class="slider-header"><span class="slider-name">Distance (miles)</span></div>
+        <input type="number" min="0" max="100" step="0.01" value="3.00" id="exDist" class="review-edit" style="width:100px" oninput="state.evening.exerciseDistance=+this.value">
+      </div>
+    </div>
+
+    <!-- Calisthenics inputs -->
+    <div id="calisthenicsInputs" class="slider-group" style="margin-top:16px;display:none">
+      <div class="glass slider-row">
+        <div class="slider-header"><span class="slider-name">Push-ups</span></div>
+        <input type="number" min="0" max="999" value="0" id="exPushups" class="review-edit" style="width:80px" oninput="state.evening.pushups=+this.value">
       </div>
       <div class="glass slider-row">
-        <div class="slider-header"><span class="slider-name">Distance</span><span class="slider-val" id="evExDistVal">3 mi</span></div>
-        <input type="range" min="0" max="10" step="0.25" value="3" id="evExDist" oninput="state.evening.exerciseDistance=+this.value;document.getElementById('evExDistVal').textContent=this.value+' mi'">
+        <div class="slider-header"><span class="slider-name">Sit-ups</span></div>
+        <input type="number" min="0" max="999" value="0" id="exSitups" class="review-edit" style="width:80px" oninput="state.evening.situps=+this.value">
+      </div>
+      <div class="glass slider-row">
+        <div class="slider-header"><span class="slider-name">Pike Push-ups</span></div>
+        <input type="number" min="0" max="999" value="0" id="exPikePushups" class="review-edit" style="width:80px" oninput="state.evening.pikePushups=+this.value">
+      </div>
+      <div class="glass slider-row">
+        <div class="slider-header"><span class="slider-name">Chin-ups</span></div>
+        <input type="number" min="0" max="999" value="0" id="exChinups" class="review-edit" style="width:80px" oninput="state.evening.chinups=+this.value">
       </div>
     </div>
   </div>
-  <div class="btn-row"><button class="btn" onclick="showSection('evening-2')">Next</button></div>
+  <div class="btn-row">
+    <button class="btn btn-skip" onclick="skipExercise()">Skip</button>
+    <button class="btn" onclick="showSection('evening-2')">Next</button>
+  </div>
 </section>
 
 <section id="evening-2">
   <div class="flow-header">
     <button class="back-btn" onclick="showSection('evening-1')">&larr;</button>
-    <div class="flow-step-title">Work & Drinks</div>
+    <div class="flow-step-title">Work, Drinks & Smoking</div>
     <div class="step-counter">2/6</div>
   </div>
   <div class="progress-bar"><div class="progress-fill" style="width:33%"></div></div>
   <div class="step-content">
     <div class="slider-group">
       <div class="glass slider-row">
-        <div class="slider-header"><span class="slider-name">Work Hours</span><span class="slider-val" id="workVal">4</span></div>
-        <input type="range" min="0" max="13" step="0.5" value="4" oninput="state.evening.workHours=+this.value;document.getElementById('workVal').textContent=this.value">
+        <div class="slider-header"><span class="slider-name">Work Hours</span><span class="slider-val" id="workVal">0</span></div>
+        <input type="range" min="0" max="13" step="0.5" value="0" oninput="state.evening.workHours=+this.value;document.getElementById('workVal').textContent=this.value">
       </div>
     </div>
     <div style="margin-top:4px">
-      <div class="step-prompt">How many drinks today?</div>
+      <div class="step-prompt">Did you drink today?</div>
+      <div class="type-grid" style="grid-template-columns:1fr 1fr;max-width:240px;margin:0 auto;">
+        <div class="glass type-btn" onclick="selectDrank(true,this)" id="drankYes">Yes</div>
+        <div class="glass type-btn selected" onclick="selectDrank(false,this)" id="drankNo">No</div>
+      </div>
+    </div>
+    <div style="margin-top:4px;display:none" id="drinkCountWrap">
+      <div class="step-prompt">How many drinks?</div>
       <div class="number-input">
         <button class="num-btn" onclick="adjustNum('drinks',-1)">&minus;</button>
-        <div class="num-display" id="drinksDisplay">0</div>
+        <div class="num-display" id="drinksDisplay">1</div>
         <button class="num-btn" onclick="adjustNum('drinks',1)">+</button>
+      </div>
+    </div>
+    <div style="margin-top:16px">
+      <div class="step-prompt">Did you smoke today?</div>
+      <div class="type-grid" style="grid-template-columns:1fr 1fr;max-width:240px;margin:0 auto;">
+        <div class="glass type-btn" onclick="selectSmoked(true,this)" id="smokedYes">Yes</div>
+        <div class="glass type-btn selected" onclick="selectSmoked(false,this)" id="smokedNo">No</div>
       </div>
     </div>
   </div>
@@ -577,11 +581,11 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbx8qswg6H85Y2hk49ns5i8M
 // ===== STATE =====
 const state = {
   date: new Date().toISOString().split('T')[0],
-  morning: { sleep: 7, intention: '', gratitude: '' },
-  quicklog: { logType: 'meal', content: '' },
+  morning: { sleep: 7, sleepQuality: 3, intention: '', gratitude: '' },
   evening: {
-    exerciseType: 'Run', exerciseDuration: 30, exerciseDistance: 3,
-    workHours: 4, drinks: 0, mood: '', energy: 3, stress: 3, focus: 3,
+    exerciseType: 'Run', exerciseDuration: '0:30', exerciseDistance: 3,
+    pushups: 0, situps: 0, pikePushups: 0, chinups: 0,
+    workHours: 0, drinks: 0, smoked: false, mood: '', energy: 3, stress: 3, focus: 3,
     symptoms: '', highlights: ''
   },
   recording: { active: false, field: null, flow: null, recognition: null, recorder: null, chunks: [] }
@@ -596,7 +600,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const flow = params.get('flow');
   const type = params.get('type');
   if (flow === 'morning') startFlow('morning');
-  else if (flow === 'quicklog') { if (type) state.quicklog.logType = type; startFlow('quicklog'); }
   else if (flow === 'evening') startFlow('evening');
 
   fetchStatus();
@@ -635,19 +638,30 @@ function startFlow(flow) {
 
 function resetEveningState() {
   state.evening = {
-    exerciseType: 'Run', exerciseDuration: 30, exerciseDistance: 3,
-    workHours: 4, drinks: 0, mood: '', energy: 3, stress: 3, focus: 3,
+    exerciseType: 'Run', exerciseDuration: '0:30', exerciseDistance: 3,
+    pushups: 0, situps: 0, pikePushups: 0, chinups: 0,
+    workHours: 0, drinks: 0, smoked: false, mood: '', energy: 3, stress: 3, focus: 3,
     symptoms: '', highlights: ''
   };
-  document.getElementById('evExType').value = 'Run';
-  document.getElementById('evExTypeLabel').textContent = 'Run';
-  document.getElementById('evExDur').value = '30';
-  document.getElementById('evExDurVal').textContent = '30 min';
-  document.getElementById('evExDist').value = '3';
-  document.getElementById('evExDistVal').textContent = '3 mi';
-  document.getElementById('workVal').textContent = '4';
-  document.querySelector('#evening-2 input[type=range]').value = 4;
-  document.getElementById('drinksDisplay').textContent = '0';
+  // Reset exercise inputs
+  document.getElementById('exDurHH').value = '0';
+  document.getElementById('exDurMM').value = '30';
+  document.getElementById('exDist').value = '3.00';
+  document.getElementById('exPushups').value = '0';
+  document.getElementById('exSitups').value = '0';
+  document.getElementById('exPikePushups').value = '0';
+  document.getElementById('exChinups').value = '0';
+  document.getElementById('cardioInputs').style.display = '';
+  document.getElementById('calisthenicsInputs').style.display = 'none';
+  document.querySelectorAll('#exerciseTypeGrid .type-btn').forEach((b, i) => b.classList.toggle('selected', i === 0));
+  document.getElementById('workVal').textContent = '0';
+  document.querySelector('#evening-2 input[type=range]').value = 0;
+  document.getElementById('drinksDisplay').textContent = '1';
+  document.getElementById('drankNo').classList.add('selected');
+  document.getElementById('drankYes').classList.remove('selected');
+  document.getElementById('drinkCountWrap').style.display = 'none';
+  document.getElementById('smokedNo').classList.add('selected');
+  document.getElementById('smokedYes').classList.remove('selected');
   document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
   ['energyVal','stressVal','focusVal'].forEach(id => document.getElementById(id).textContent = '3');
   document.querySelectorAll('#evening-4 input[type=range]').forEach(r => r.value = 3);
@@ -661,10 +675,10 @@ async function fetchStatus() {
     const res = await fetch(API_URL + '?action=status&date=' + state.date);
     const data = await res.json();
     if (data.drinks7d !== undefined) {
-      document.getElementById('drinks7d').textContent = data.drinks7d;
+      document.getElementById('drinks7d').textContent = data.drinks7d === 0 ? '-' : data.drinks7d;
     }
     if (data.smokeFree !== undefined) {
-      document.getElementById('smokeFree').textContent = data.smokeFree;
+      document.getElementById('smokeFree').textContent = data.smokeFree === 0 ? '-' : data.smokeFree;
     }
     if (data.morningDone) {
       const ms = document.getElementById('morningStatus');
@@ -678,6 +692,12 @@ async function fetchStatus() {
 }
 
 // ===== MORNING FLOW =====
+function selectSleepQuality(val, el) {
+  state.morning.sleepQuality = val;
+  document.querySelectorAll('#sleepQualGrid .type-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
 async function submitMorning() {
   const btn = document.getElementById('morningSubmitBtn');
   btn.disabled = true; btn.textContent = 'Saving...';
@@ -685,6 +705,7 @@ async function submitMorning() {
     await postData({
       type: 'morning', date: state.date,
       sleep: state.morning.sleep,
+      sleepQuality: state.morning.sleepQuality,
       intention: state.morning.intention,
       gratitude: state.morning.gratitude
     });
@@ -696,34 +717,55 @@ async function submitMorning() {
   btn.disabled = false; btn.textContent = 'Save';
 }
 
-// ===== QUICK LOG =====
-function selectLogType(type, el) {
-  state.quicklog.logType = type;
-  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+// ===== EVENING FLOW =====
+const CARDIO_TYPES = ['Run', 'Walk', 'Swim', 'Bike'];
+
+function selectExerciseType(type, el) {
+  state.evening.exerciseType = type;
+  document.querySelectorAll('#exerciseTypeGrid .type-btn').forEach(b => b.classList.remove('selected'));
   el.classList.add('selected');
-}
-function updateQuickLogLabels() {
-  const titles = { meal: 'Record Meal', symptom: 'Record Symptom', note: 'Record Note' };
-  const prompts = { meal: 'Describe what you ate and drank.', symptom: 'Describe your symptoms.', note: 'What would you like to note?' };
-  document.getElementById('quicklogRecordTitle').textContent = titles[state.quicklog.logType] || 'Record';
-  document.getElementById('quicklogRecordPrompt').textContent = prompts[state.quicklog.logType] || '';
-}
-async function submitQuickLog() {
-  const btn = document.getElementById('quicklogSubmitBtn');
-  btn.disabled = true; btn.textContent = 'Saving...';
-  try {
-    await postData({ type: 'quicklog', date: state.date, logType: state.quicklog.logType, content: state.quicklog.content });
-    showSection('quicklog-3');
-  } catch (e) { toast('Failed to save. Try again.'); }
-  btn.disabled = false; btn.textContent = 'Save';
+  const isCardio = CARDIO_TYPES.includes(type);
+  const isCal = type === 'Calisthenics';
+  document.getElementById('cardioInputs').style.display = isCardio ? '' : 'none';
+  document.getElementById('calisthenicsInputs').style.display = isCal ? '' : 'none';
 }
 
-// ===== EVENING FLOW =====
+function updateDuration() {
+  const hh = parseInt(document.getElementById('exDurHH').value) || 0;
+  const mm = parseInt(document.getElementById('exDurMM').value) || 0;
+  state.evening.exerciseDuration = hh + ':' + String(mm).padStart(2, '0');
+}
+
+function skipExercise() {
+  state.evening.exerciseType = 'Rest';
+  state.evening.exerciseDuration = '0:00';
+  state.evening.exerciseDistance = 0;
+  state.evening.pushups = 0;
+  state.evening.situps = 0;
+  state.evening.pikePushups = 0;
+  state.evening.chinups = 0;
+  showSection('evening-2');
+}
+
+function selectDrank(val, el) {
+  document.getElementById('drankYes').classList.toggle('selected', val);
+  document.getElementById('drankNo').classList.toggle('selected', !val);
+  document.getElementById('drinkCountWrap').style.display = val ? '' : 'none';
+  if (!val) { state.evening.drinks = 0; document.getElementById('drinksDisplay').textContent = '1'; }
+  else if (state.evening.drinks === 0) { state.evening.drinks = 1; document.getElementById('drinksDisplay').textContent = '1'; }
+}
+
 function adjustNum(field, delta) {
   if (field === 'drinks') {
-    state.evening.drinks = Math.max(0, state.evening.drinks + delta);
+    state.evening.drinks = Math.max(1, state.evening.drinks + delta);
     document.getElementById('drinksDisplay').textContent = state.evening.drinks;
   }
+}
+
+function selectSmoked(val, el) {
+  state.evening.smoked = val;
+  document.getElementById('smokedYes').classList.toggle('selected', val);
+  document.getElementById('smokedNo').classList.toggle('selected', !val);
 }
 
 function selectMood(mood, el) {
@@ -734,7 +776,7 @@ function selectMood(mood, el) {
 }
 
 async function submitEvening() {
-  state.evening.exerciseType = document.getElementById('evExType').value;
+  updateDuration();
 
   const btn = document.getElementById('eveningSubmitBtn');
   btn.disabled = true; btn.textContent = 'Submitting...';
@@ -745,9 +787,11 @@ async function submitEvening() {
       exerciseType: state.evening.exerciseType,
       exerciseDuration: state.evening.exerciseDuration,
       exerciseDistance: state.evening.exerciseDistance,
+      pushups: state.evening.pushups, situps: state.evening.situps,
+      pikePushups: state.evening.pikePushups, chinups: state.evening.chinups,
       workHours: state.evening.workHours, mood: state.evening.mood,
       energy: state.evening.energy, stress: state.evening.stress, focus: state.evening.focus,
-      smoked: false, drank: drank,
+      smoked: state.evening.smoked, drank: drank,
       alcoholUnits: state.evening.drinks, foodSlip: false,
       behavioralSlip: false, symptoms: state.evening.symptoms,
       highlights: state.evening.highlights, emotionalCheckin: ''
